@@ -1,15 +1,24 @@
 {
+  "name": "WhyRobotWhy Blog",
+  "type": "module",
+  "version": "0.0.1",
   "private": true,
   "scripts": {
     "dev": "astro dev",
-    "start": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
     "astro": "astro"
   },
   "dependencies": {
-    "@astrojs/vercel": "8.0.1",
-    "astro": "^5.1.1",
-    "react": "18.3.1"
+    "@astrojs/mdx": "^4.0.7",
+    "@astrojs/rss": "^4.0.11",
+    "@astrojs/sitemap": "^3.2.1",
+    "@astrojs/vercel": "^8.0.6",
+    "@auth/core": "^0.37.4",
+    "@neondatabase/serverless": "^1.0.1",
+    "@ybot1122/toby-ui": "^0.0.21-alpha",
+    "astro": "^5.1.10",
+    "auth-astro": "^4.2.0",
+    "openai": "^5.3.0"
   }
 }

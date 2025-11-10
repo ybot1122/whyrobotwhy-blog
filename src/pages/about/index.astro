@@ -1,0 +1,93 @@
+---
+import BaseHead from "../../components/BaseHead.astro";
+import Footer from "../../components/Footer.astro";
+import Header from "../../components/Header.astro";
+import { SITE_TITLE, SITE_DESCRIPTION } from "../../consts";
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <BaseHead title={SITE_TITLE} description={SITE_DESCRIPTION} />
+    <style>
+      body {
+        font-family: Arial, sans-serif;
+        line-height: 1.6;
+        margin: 0;
+        padding: 0;
+      }
+
+      main {
+        width: 100%;
+        max-width: 800px;
+        border-radius: 8px;
+        margin: 3em auto;
+        padding: 0;
+      }
+
+      p {
+        margin: 1em;
+      }
+
+      a {
+        color: #3498db;
+        text-decoration: none;
+      }
+
+      a:hover {
+        text-decoration: underline;
+      }
+
+      img {
+        display: block;
+        border-radius: 8px;
+      }
+
+      .bio img {
+        max-width: 150px;
+        height: auto;
+      }
+
+      .bio p {
+        margin-top: 0.5rem;
+      }
+
+      .bio {
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        flex-direction: column;
+      }
+
+      @media (min-width: 600px) {
+        .bio {
+          flex-direction: row;
+          margin-left: 1em;
+        }
+      }
+
+      .bio img {
+        margin-right: 1rem;
+      }
+
+      #attribution {
+        font-size: 0.5em;
+        font-style: italic;
+        text-align: center;
+      }
+    </style>
+  </head>
+  <body>
+    <Header />
+    <main>
+      <div class="bio">
+        <img src="/MeAnime.png" alt="Toby L" />
+        <p>Toby is a software engineer and computer scientist who took his faith seriously in 2020. Throughout his journey, Toby met many beautiful souls including recovering heroin and opioid addicts, domestic violence victims, distressed war veterans, and former convicts.</p>
+      </div>
+      <p>
+        While working full time, he volunteers twice a month at the local food bank. He grew a heart for abandoned pets after many hours of volunteering at a humane society. Toby currently lives with his cat and two foster cats.
+      </p>
+    </main>
+    <Footer />
+  </body>
+</html>

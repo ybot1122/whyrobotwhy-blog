@@ -1,0 +1,124 @@
+---
+import type { CollectionEntry } from "astro:content";
+import BaseHead from "../components/BaseHead.astro";
+import FormattedDate from "../components/FormattedDate.astro";
+import HeroImage from "../components/HeroImage.astro";
+import AudioPlayer from "../components/AudioPlayer.astro";
+
+type Props = CollectionEntry<"blog">["data"] & { post_id: string };
+
+const { title, description, pubDate, updatedDate, heroImage, post_id, days, author, spotifyUrl } =
+  Astro.props;
+---
+<style>
+  .prose {
+    max-width: calc(100% - 2em);
+    margin: auto;
+    padding: 1em;
+    color: rgb(var(--gray-dark));
+  }
+  .title {
+    margin-bottom: 1em;
+    padding: 1em 0;
+    text-align: center;
+    line-height: 1;
+  }
+  .title h1 {
+    margin: 0 0 0.5em 0;
+  }
+  .date {
+    margin-bottom: 0.5em;
+    color: rgb(var(--gray));
+  }
+  .last-updated-on {
+    font-style: italic;
+  }
+
+  #days h3 {
+    border-bottom: 1px solid #90cdf4;
+  }
+
+  #days a, .date a{
+    color: #3182ce;
+    text-decoration: none;
+    transition: color 0.2s;
+  }
+
+  #days a:hover, .date a:hover {
+    color: #2b6cb0;
+    text-decoration: underline;
+  }
+  
+</style>
+
+<article>
+  {heroImage && <HeroImage imageSrc={heroImage} alt="" />}
+  <div class="prose">
+    <div class="title">
+      <div class="date">
+        Published <FormattedDate date={pubDate} />
+        {
+          updatedDate && (
+            <div class="last-updated-on">
+              Last updated on <FormattedDate date={updatedDate} />
+            </div>
+          )
+        }
+      </div>
+      <div class="data">By {author}</div>
+      <h1>{title}</h1>
+      <AudioPlayer post_id={post_id} />
+      <hr />
+    </div>
+    <div id="post">
+      <slot />
+    </div>
+    {
+      days && (
+        <div id="days">
+          <h3>Daily Readings</h3>
+          <ul>
+            {Object.entries(days).map(([day, readings]) => (
+              <li>
+                {day.charAt(0).toUpperCase() + day.slice(1)}:
+                {Array.isArray(readings)
+                  ? readings.map(
+                      ({ book, chapter, startVerse, endVerse }, idx) => (
+                        <span>
+                          <a
+                            href={`https://www.biblegateway.com/passage/?search=${encodeURI(`${book} ${chapter}`)}`}
+                            target="_blank"
+                          >
+                            {`${book} ${chapter}${startVerse ? `: ${startVerse}` : ""}${endVerse ? `-${endVerse}` : ""}`}
+                          </a>
+                          {idx < readings.length - 1 && ", "}
+                        </span>
+                      )
+                    )
+                  : null}
+              </li>
+            ))}
+          </ul>
+        </div>
+      )
+    }
+  </div>
+</article>
+<script src="https://open.spotify.com/embed/iframe-api/v1" async></script>
+{spotifyUrl && <h3>Song of the Week</h3>}
+<div id="embed-iframe" data-url={spotifyUrl}></div>
+<script>
+  const element = document.getElementById('embed-iframe');
+  if (element?.dataset.url) {
+    // @ts-ignore
+    window.onSpotifyIframeApiReady = (IFrameAPI) => {
+      const element = document.getElementById('embed-iframe');
+      const options = {
+        uri: element?.dataset.url
+      };
+      // @ts-ignore
+      const callback = (EmbedController) => {};
+      IFrameAPI.createController(element, options, callback);
+    };
+  }
+</script>

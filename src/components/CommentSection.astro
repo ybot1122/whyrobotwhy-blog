@@ -1,0 +1,230 @@
+---
+import { COOKIES_RESPONSES } from "../consts";
+
+const RECAPTCHA_SITE_KEY = import.meta.env.RECAPTCHA_SITE_KEY;
+---
+
+<div id="responses" class="comment-section">
+  <h3>Responses</h3>
+  <div id="comment-list" data-article-id={Astro.props.articleId}>
+    <p>loading...</p>
+  </div>
+  <form id="comment-form" class="comment-form" data-article-id={Astro.props.articleId}>
+    <div class="form-group">
+      <label for="author" class="form-label">Name</label>
+      <input
+        type="text"
+        id="author"
+        name="author"
+        required
+        class="form-input"
+      />
+    </div>
+    <div class="form-group">
+      <label for="content" class="form-label">Response</label>
+      <textarea
+        id="content"
+        name="content"
+        rows="4"
+        required
+        class="form-input"
+      ></textarea>
+    </div>
+    <button
+      type="submit"
+      class="g-recaptcha form-button" 
+      data-sitekey={RECAPTCHA_SITE_KEY}
+      data-callback='onSubmit' 
+      data-action='submit'>
+      Submit Response
+    </button>
+    <div id="info" class="info" />
+  </form>
+
+  <!-- Dynamically load reCAPTCHA script to avoid CORS error -->
+  <script>
+    const recaptchaScript = document.createElement('script');
+    recaptchaScript.src = `https://www.google.com/recaptcha/api.js`;
+    recaptchaScript.async = true;
+    document.head.appendChild(recaptchaScript);
+  </script>
+
+  <script>
+    // Fetch and display comments
+    import { actions } from "astro:actions";
+    import { COOKIES_RESPONSES } from '../consts';
+
+    const commentSection = document.getElementById('comment-list')!;
+    const articleId = commentSection.dataset.articleId ?? '';
+    const cid = 'data-astro-cid-'+ (Object.keys(commentSection.dataset).find(key => key.startsWith('astroCid'))?.substring(8).toLowerCase() ?? '');
+
+    const {data: comments} = await actions.fetch_comments.fetchComments({article_id: articleId});
+
+    function renderComment(comment: {author: string, created_at: string, content: string}) {
+      const commentDiv = document.createElement('div')!;
+      const commentAuthor = document.createElement('span')!;
+      const commentDate = document.createElement('span')!;
+      const commentContent = document.createElement('div')!;
+
+      commentAuthor.textContent = comment.author;
+      commentDate.textContent = new Date(comment.created_at).toLocaleDateString(undefined, { year: "numeric", month: "short", day: "numeric" });
+      commentContent.textContent = comment.content;
+
+      commentDiv.appendChild(commentAuthor);
+      commentDiv.appendChild(commentDate); 
+      commentDiv.appendChild(commentContent);
+
+      commentDiv.classList.add('comment');
+      commentAuthor.classList.add('comment-author');
+      commentDate.classList.add('comment-date');
+      commentContent.classList.add('comment-content');
+
+      commentDiv.setAttribute(cid, '');
+      commentAuthor.setAttribute(cid, '');
+      commentDate.setAttribute(cid, '');
+      commentContent.setAttribute(cid, '');
+
+      commentSection.appendChild(commentDiv);
+    }
+
+    commentSection.removeChild(commentSection.children[0]!);
+    if (!comments || comments.length === 0) {
+      const noComments = document.createElement('p')!;
+      noComments.textContent = "No responses yet.";
+      commentSection.appendChild(noComments);
+    } else {
+      comments.forEach(comment => renderComment(comment as any));
+    }
+
+    // Handle form submission
+    const commentForm = document.getElementById('comment-form')! as HTMLFormElement;
+    const existingResponses = document.cookie.split('; ').find(row => row.startsWith(`${COOKIES_RESPONSES}=`))?.split('=')[1] || '';
+    const respondedArticles = existingResponses ? existingResponses.split(',') : [];
+    if (respondedArticles.includes(articleId)) {
+      commentForm.innerHTML = `<p>Thank you for your response!</p>`;
+    } else {
+      const submitButton = commentForm.querySelector('button[type="submit"]') as HTMLButtonElement;
+      const info = document.getElementById('info')!;
+
+      let isSubmitting = false;
+
+      console.log('Setting up onSubmit');
+
+      (window as any).onSubmit = async function onSubmit(token: string) {
+        if (isSubmitting) return;
+        isSubmitting = true;
+        info.textContent = '';
+
+        const formData = new FormData(commentForm);
+        const articleId = commentForm.dataset.articleId ?? '';
+        formData.append('article_id', articleId);
+
+        const comment = formData.get('content')?.toString();
+        const author = formData.get('author')?.toString();
+        if (!comment || !author) {
+          info.textContent = "Please fill in all fields.";
+          isSubmitting = false;
+          return;
+        }
+
+        submitButton.disabled = true;
+        submitButton.textContent = 'Submitting...';
+
+        try {
+          const result = await actions.post_comment.postComment({
+            article_id: articleId, 
+            comment,
+            author,
+            token,
+          });
+
+          if (result.data === true) {
+            commentForm.innerHTML = `
+              <p>Thank you for your response!</p>
+            `;
+          } else {
+            info.textContent = "Submission failed.";
+            return;
+          }
+
+          // Update cookie to prevent multiple responses
+          const newResponses = existingResponses ? existingResponses + ',' + articleId : articleId; 
+          document.cookie = `${COOKIES_RESPONSES}=${newResponses}; path=/; max-age=${60*60*24*365}`;
+
+          renderComment({author, created_at: new Date().toISOString(), content: comment});
+        } catch (e) {
+          console.error(e);
+          info.textContent = "An error occurred. Please try again.";
+        } finally {
+          isSubmitting = false;
+          submitButton.disabled = false;
+          submitButton.textContent = 'Submit Response';
+        }
+      }
+
+      commentForm.addEventListener('submit', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+      });
+    }
+  </script>
+</div>
+
+<style>
+  .comment-section {
+    margin-top: 2em;
+    padding: 1em;
+    background: #f9f9f9;
+    border-radius: 8px;
+  }
+  .comment {
+    border-bottom: 1px solid #e2e8f0;
+    padding: 1em 0;
+  }
+  .comment:last-child {
+    border-bottom: none;
+  }
+  .comment-author {
+    font-weight: bold;
+    color: #2b6cb0;
+  }
+  .comment-date {
+    font-size: 0.9em;
+    color: #718096;
+    margin-left: 0.5em;
+  }
+  .comment-content {
+    margin-top: 0.5em;
+    color: #2d3748;
+    white-space: pre-line;
+  }
+  .comment-form {
+    margin-top: 2em;
+  }
+  .form-group {
+    margin-bottom: 0.5em;
+  }
+  .form-label {
+    display: block;
+    font-weight: bold;
+  }
+  .form-input {
+    width: 100%;
+    padding: 0.5em;
+    border: 1px solid #cbd5e0;
+    border-radius: 4px;
+  }
+  .form-button {
+    background: #2b6cb0;
+    color: white;
+    padding: 0.5em 1.5em;
+    border: none;
+    border-radius: 4px;
+    cursor: pointer;
+  }
+  .info {
+    color: red;
+    height: 1.5em;
+    font-size: 0.9em;
+  }
+</style>

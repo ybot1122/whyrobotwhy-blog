@@ -1,0 +1,101 @@
+---
+import BaseHead from "../../components/BaseHead.astro";
+import Header from "../../components/Header.astro";
+import Footer from "../../components/Footer.astro";
+import { SITE_TITLE, SITE_DESCRIPTION } from "../../consts";
+import { getCollection } from "astro:content";
+import { getSession } from "auth-astro/server";
+import GenerateImage from "../../components/GenerateImage.astro";
+export const prerender = false;
+
+const session = await getSession(Astro.request);
+
+const t = import.meta.env.TEST_SECRET;
+
+const posts = (await getCollection("blog"))
+  .filter((a) => a.id !== "using-mdx")
+  .sort((a, b) => b.data.pubDate.valueOf() - a.data.pubDate.valueOf());
+---
+
+<!doctype html>
+<html lang="en">
+  <head>
+    <BaseHead title={SITE_TITLE} description={SITE_DESCRIPTION} />
+    <script src="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.min.js"
+    ></script>
+    <link
+      href="https://cdn.jsdelivr.net/npm/quill@2.0.3/dist/quill.snow.css"
+      rel="stylesheet"
+    />
+  </head>
+  <body>
+    <Header />
+    {
+      !session && (
+        <main>
+          <button id="login">Login</button>
+        </main>
+      )
+    }
+    {
+      session && session.user?.email === "liutoby92@gmail.com" && (
+        <main>
+          <button id="logout">logout</button>
+          <h1>Admin Panel</h1>
+          <GenerateImage />
+          {/*
+          <div id="editor" class="hidden">
+            <p>Hello World!</p>
+            <p>
+              Some initial <strong>bold</strong> text
+            </p>
+            <p>
+              <br />
+            </p>
+          </div>
+          <button id="submit" type="button">
+            Get Contents {t}
+          </button>
+           */}
+        </main>
+      )
+    }
+    <Footer />
+  </body>
+</html>
+
+<!-- Initialize Quill editor -->
+<script>
+  const { signIn, signOut } = await import("auth-astro/client");
+  const login: HTMLElement | null = document.querySelector("#login");
+  if (login) {
+    login.onclick = () => signIn("google");
+  }
+
+  const logout: HTMLElement | null = document.querySelector("#logout");
+  if (logout) {
+    logout.onclick = () => signOut();
+  }
+
+  document.addEventListener("DOMContentLoaded", function (event) {
+    // @ts-expect-error Quill is not defined
+    const quill = new Quill("#editor", {
+      theme: "snow",
+      modules: {
+        toolbar: [
+          ["bold", "italic", "underline"],
+          ["link"],
+          [{ list: "ordered" }, { list: "bullet" }],
+        ],
+      },
+    });
+    document
+      .getElementById("submit")!
+      .addEventListener("click", function (event) {
+        var html = quill.root.innerHTML;
+        console.log(html);
+        console.log(quill.getSemanticHTML());
+        console.log(quill.getContents());
+      });
+  });
+</script>

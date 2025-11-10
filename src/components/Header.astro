@@ -1,0 +1,82 @@
+---
+import HeaderLink from "./HeaderLink.astro";
+import { SITE_TITLE } from "../consts";
+---
+
+<header>
+  <nav>
+    <h2>
+      <a href="/" class="logo-container"
+        ><img class="logo" src="/logo_1.png" />WhyRobotWhy</a
+      >
+    </h2>
+    <div class="internal-links">
+      <HeaderLink href="/">Home</HeaderLink>
+      <HeaderLink href="/posts">Posts</HeaderLink>
+      <HeaderLink href="/about">About</HeaderLink>
+    </div>
+  </nav>
+</header>
+<style>
+  .logo-container {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-style: italic;
+    font-weight: normal;
+  }
+  .logo {
+    height: 50px;
+    margin-right: 0.5em;
+  }
+  header {
+    margin: 0;
+    padding: 0 1em;
+    background: white;
+    box-shadow: 0 2px 8px rgba(var(--black), 5%);
+  }
+  h2 a,
+  h2 a.active {
+    text-decoration: none;
+  }
+  nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    flex-wrap: wrap;
+    max-width: 1024px;
+    margin: 0 auto;
+  }
+  nav .internal-links {
+    width: 100%;
+    text-align: center;
+  }
+  @media screen and (min-width: 830px) {
+    nav .internal-links {
+      width: auto;
+    }
+  }
+  nav a {
+    padding: 1em 0.5em;
+    color: var(--black);
+    border-bottom: 4px solid transparent;
+    text-decoration: none;
+  }
+  nav a.active {
+    text-decoration: none;
+    border-bottom-color: var(--accent);
+  }
+
+  h2 {
+    width: 100%;
+    font-size: 1em;
+    margin: 1em 0 0 0;
+    text-align: center;
+  }
+  @media screen and (min-width: 830px) {
+    h2 {
+      margin: 0;
+      width: auto;
+    }
+  }
+</style>

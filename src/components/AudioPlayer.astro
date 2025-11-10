@@ -1,0 +1,211 @@
+---
+// SimpleAudioPlayer.astro
+const label = "OpenAI Text-to-Speech";
+const post_id = Astro.props.post_id;
+---
+
+<style>
+  .audio-player {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    background: #f4f4f4;
+    padding: 0.75rem 1.25rem;
+    border-radius: 6px;
+
+    justify-content: center;
+  }
+  button {
+    background: #fff;
+    border: 1px solid #bbb;
+    border-radius: 50%;
+    width: 2.5rem;
+    height: 2.5rem;
+    font-size: 1.25rem;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    transition:
+      background 0.2s,
+      border 0.2s;
+  }
+  button:active {
+    background: #eee;
+    border-color: #888;
+  }
+
+  .hidden {
+    visibility: hidden;
+  }
+</style>
+
+<div class="audio-player">
+  <button
+    id="audio-play-pause"
+    aria-label="Play"
+    type="button"
+    data-postid={post_id}>▶️</button
+  >
+  <audio id="p1"></audio>
+  <audio id="p2"></audio>
+  <audio id="p3"></audio>
+  <span id="label">{label}</span>
+  <select id="voice">
+    <option value="alloy">Alloy</option>
+    <option value="ash">Ash</option>
+    <option value="ballad">Ballad</option>
+    <option value="coral" selected>Coral</option>
+    <option value="echo">Echo</option>
+    <option value="fable">Fable</option>
+    <option value="onyx">Onyx</option>
+    <option value="nova">Nova</option>
+    <option value="sage">Sage</option>
+    <option value="shimmer">Shimmer</option>
+    <option value="verse">Verse</option>
+  </select>
+
+  <select id="tone">
+    <option value="serious">Serious, solemn</option>
+    <option value="upbeat">Upbeat, joyful</option>
+    <option value="curious">Inquistive, curious</option>
+    <option value="dire">Dire, grave</option>
+    <option value="casual" selected>Lighthearted, casual</option>
+  </select>
+</div>
+<script>
+  import { actions } from "astro:actions";
+  const btn = document.getElementById("audio-play-pause");
+  const p1: HTMLAudioElement | null = document.getElementById(
+    "p1"
+  ) as HTMLAudioElement;
+  const p2: HTMLAudioElement | null = document.getElementById(
+    "p2"
+  ) as HTMLAudioElement;
+  const p3: HTMLAudioElement | null = document.getElementById(
+    "p3"
+  ) as HTMLAudioElement;
+  const voiceEl: HTMLSelectElement | null = document.getElementById(
+    "voice"
+  ) as HTMLSelectElement;
+  const toneEl: HTMLSelectElement | null = document.getElementById(
+    "tone"
+  ) as HTMLSelectElement;
+
+  const ps = [p1, p2, p3];
+  const form = [btn, voiceEl, toneEl];
+
+  if (btn && p1 && p2 && p3 && btn.dataset.postid && voiceEl) {
+    let playing = false;
+    let currentPart = 0;
+
+    voiceEl.addEventListener("change", () => {
+      ps[currentPart].pause();
+      playing = false;
+      ps.forEach((p) => p.removeAttribute("src"));
+      currentPart = 0;
+    });
+    toneEl.addEventListener("change", () => {
+      ps[currentPart].pause();
+      playing = false;
+      ps.forEach((p) => p.removeAttribute("src"));
+      currentPart = 0;
+    });
+    ps.forEach((p, ind) => {
+      p.addEventListener("ended", () => {
+        console.log(`p${ind + 1} ended`);
+        p.removeAttribute("src");
+
+        const next = ps[ind + 1];
+        if (next) {
+          next.play();
+          currentPart = ind + 1;
+        } else {
+          btn.textContent = "▶️";
+          playing = false;
+          currentPart = 0;
+          btn.setAttribute("aria-label", "Play");
+        }
+      });
+
+      p.addEventListener("play", () => {
+        playing = true;
+        btn.textContent = "⏸️";
+        btn.setAttribute("aria-label", "Pause");
+      });
+
+      p.addEventListener("pause", () => {
+        playing = false;
+        btn.textContent = "▶️";
+        btn.setAttribute("aria-label", "Play");
+      });
+    });
+
+    btn.addEventListener("click", async () => {
+      if (currentPart === 0 && !p1.src) {
+        const voice: any = voiceEl.value;
+        const tone: any = toneEl.value;
+        console.log(voice, tone);
+
+        if (document.getElementById("label")!.innerText === "loading...") {
+          return;
+        }
+
+        document.getElementById("label")!.innerText = "loading...";
+        form.forEach((el) => el!.classList.add("hidden"));
+
+        actions.tts
+          .tts({
+            part: 1,
+            post_id: btn.dataset.postid!,
+            voice,
+            tone,
+          })
+          .then((res) => {
+            console.log(res);
+            if (res.data) {
+              p2.src = `data:audio/wav;base64,${res.data}`;
+            }
+          });
+
+        actions.tts
+          .tts({
+            part: 2,
+            post_id: btn.dataset.postid!,
+            voice,
+            tone,
+          })
+          .then((res) => {
+            console.log(res);
+            if (res.data) {
+              p3.src = `data:audio/wav;base64,${res.data}`;
+            }
+          });
+
+        const playback = await actions.tts.tts({
+          part: 0,
+          post_id: btn.dataset.postid!,
+          voice,
+          tone,
+        });
+        console.log(playback);
+
+        // Convert the buffer to a base64 data URI (audio/wav by default)
+        let audioSrc = "";
+        if (playback.data) {
+          audioSrc = `data:audio/wav;base64,${playback.data}`;
+          p1.src = audioSrc;
+        }
+
+        document.getElementById("label")!.innerText = "OpenAI Text-to-Speech";
+        form.forEach((el) => el!.classList.remove("hidden"));
+      }
+
+      if (playing) {
+        ps[currentPart].pause();
+      } else {
+        ps[currentPart].play();
+      }
+    });
+  }
+</script>
